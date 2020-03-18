@@ -1,0 +1,94 @@
+#!/bin/env python
+import sys
+
+def merged_subcommands(clist):
+    merged_list = []
+    cur_cmd = ""
+    for idx, i in enumerate(clist):
+        if idx == 0:
+            cur_cmd = i
+        if idx > 0:
+            if i.startswith("-"):
+                merged_list.append(cur_cmd)
+                cur_cmd = i+" "
+            elif not i.startswith("-"):
+                cur_cmd = cur_cmd+" "+i
+    return merged_list
+
+def merge_dashed_params(clist):
+    merged_list = []
+    cur_cmd = ""
+    for idx, i in enumerate(clist):
+        if i.startswith("-"):
+            cur_cmd = " ".join(cur_cmd.split())
+            merged_list.append(cur_cmd)
+            cur_cmd = i+" "
+        elif not i.startswith("-"):
+            cur_cmd = cur_cmd+" "+i
+    merged_list.append(cur_cmd)
+    return merged_list
+
+def find_index(arr, name):
+    try:
+        return arr.index(name)
+    except ValueError:
+        return -1
+
+def merged_subcommands_with_positional(clist):
+    merged_list = []
+    cur_cmd = ""
+    dashed_params = [item for item in clist if item.startswith("-")]
+    non_dashed_components = clist
+    dashed_components = []
+    if dashed_params:
+        ## Some kwargs
+        idx_of_first_dash = find_index(clist, dashed_params[0])
+        non_dashed_components = clist[0:idx_of_first_dash]
+        dashed_components = clist[idx_of_first_dash:]
+    merged_dashed_components = merge_dashed_params(dashed_components)
+    final_list = non_dashed_components+merged_dashed_components
+    final_list = [item for item in final_list if item != "" and item != " "]
+    return final_list
+
+def prettify(f):
+    def helper(x):
+        print()
+        f(x)
+        print()
+        print("-"*80)
+    return helper
+
+@prettify
+def print_commands(clist):
+    indent = 0
+    clist = [item+" \\" for item in clist]
+    clist[-1] = clist[-1].replace(" \\","")
+    for idx,i in enumerate(clist):
+        i = i.replace("  "," ")
+        if idx > 0:
+            indent = 4
+        prefix = " "*indent
+        print(prefix+i)
+
+c = sys.argv[1:]
+c = [sys.stdin.read()]
+#print("C stdin: ", c)
+#print("C sysargv: ")
+#print(c)
+clist = c
+multi_cmd = False
+multi_cmd_list = []
+if len(clist) == 1:
+    ## someone passed in params as quoted
+    ## Remove quotes first
+    command_passed = c[0].replace('"','')
+    if "&&" in command_passed:
+        multi_cmd_list = command_passed.split(" && ")
+    
+    multi_cmd_list = [item.split() for item in multi_cmd_list]
+else:
+    multi_cmd_list = [clist]
+print("-"*80)
+for i in multi_cmd_list:
+    result_cmd_str = merged_subcommands_with_positional(i)
+    print_commands(result_cmd_str)
