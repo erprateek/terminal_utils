@@ -1,0 +1,1 @@
+'sshpass -p  <PASS> ssh -o StrictHostKeyChecking=no {USERNAME}@{server} "{command}"'
